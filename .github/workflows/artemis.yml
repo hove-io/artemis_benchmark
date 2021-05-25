@@ -1,0 +1,29 @@
+name: Artemis
+
+on:
+ repository_dispatch:
+    types: [bench-report]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Store benchmark result
+        uses: AzHicham/github-action-benchmark@v2
+        with:
+          tool: 'pytest'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          gh-pages-branch: 'gh-pages'
+          benchmark-data-dir-path: '.'
+          output-file-path: benchmark.json
+          fail-on-alert: true
+          alert-threshold: '150%'
+          comment-on-alert: true
+          commit-id: ${{ github.event.client_payload.commit_id }}
+          commit-message: ${{ github.event.client_payload.commit_message }}
+          commit-timestamp: ${{ github.event.client_payload.commit_timestamp }}
+          commit-url: ${{ github.event.client_payload.commit_url }}/commit/${{ github.event.client_payload.commit_id }}
+          commit-name: ${{ github.event.client_payload.commit_username }}
