@@ -3,13 +3,20 @@ name: Artemis
 on:
  repository_dispatch:
     types: [bench-report]
-
+    
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        # STD_DEV is fake but it's needed by action-benchmarks
+      - name: Compute Global benchmark
+        run: |
+            TOTAL_RUN=$(cat benchmark.json| jq '[.. | objects | .mean] | add' )
+            OPS=$(echo "scale=10; 1.0 /  $TOTAL_RUN " | bc)
+            STD_DEV=$(echo "scale=10; 0.1 /  $TOTAL_RUN " | bc)
+            cat benchmark.json | jq '.benchmarks |= [{"group": "IdfM", "name": "artemis/global_test_", "fullname": "artemis/global_test_", "params": null, "param": null, "extra_info": {}, "stats": { "ops" : "'"$OPS"'", "mean" : "'"$TOTAL_RUN"'", "rounds" : 1, "stddev" : "'"$STD_DEV"'" }  }] + .' >> benchmark_edit.json
       - name: Store benchmark result
         uses: AzHicham/github-action-benchmark@v2
         with:
@@ -18,10 +25,11 @@ jobs:
           auto-push: true
           gh-pages-branch: 'gh-pages'
           benchmark-data-dir-path: '.'
-          output-file-path: benchmark.json
+          output-file-path: benchmark_edit.json
           fail-on-alert: true
           alert-threshold: '150%'
           comment-on-alert: true
+          alert-comment-cc-users: "@AzHicham,@kadhikari,@benoit-bst,@xlqian,@azime,@pbench"
           commit-id: ${{ github.event.client_payload.commit_id }}
           commit-message: ${{ github.event.client_payload.commit_message }}
           commit-timestamp: ${{ github.event.client_payload.commit_timestamp }}
